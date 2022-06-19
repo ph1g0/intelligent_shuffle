@@ -1,2 +1,2 @@
-# spotify_intelligent_shuffle
-This application adds an intelligent shuffle mode to spotify playlists. 
+# intelligent_shuffle
+This application features an intelligent shuffle mode for your playlists.
