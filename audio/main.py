@@ -11,7 +11,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-from .views import Window
+from .views import AudioPlayer
 
 
 
@@ -21,7 +21,7 @@ def main():
     app = QApplication(sys.argv)
 
     # Create the main window
-    win = Window()
+    win = AudioPlayer()
     win.show()
     
     # Run the event loop
