@@ -7,9 +7,9 @@ Created on Sun Jun 19 12:01:09 2022
 
 """This module provides views to the audio player"""
 
-import os
+import os, time, random
 
-from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtCore import Qt, QUrl, QTimer
 
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 
@@ -46,6 +46,11 @@ class AudioPlayer(QWidget):
         self.is_pause = True
         self.is_switching = False
         
+        # Initialize timer for music progress bar
+        self.timer = QTimer(self)
+        self.timer.start(1000)
+        self.timer.timeout.connect(self.execPlaybackMode)
+        
         self.setupUI()
 
     def setupUI(self):
@@ -54,14 +59,15 @@ class AudioPlayer(QWidget):
         # Add elements to the GUI
         ##########################################################
         
-        # Add labels
+        # Add slider as music progress bar
+        self.slider = QSlider(Qt.Horizontal, self)
         self.startTimeLabel = QLabel('00:00')
         self.endTimeLabel = QLabel('00:00')
         
-        # Add slider
-        self.slider = QSlider(Qt.Horizontal, self)
+        # Drag the slider to control the music playback progress
+        self.slider.sliderMoved[int].connect(lambda: self.player.setPosition(self.slider.value()))
         
-        # Add buttons
+        # Add buttons for playback control
         self.playBtn = QPushButton('Play', self)
         self.playBtn.clicked.connect(self.playMusic)
         
@@ -74,10 +80,13 @@ class AudioPlayer(QWidget):
         self.openBtn = QPushButton('Open folder', self)
         self.openBtn.clicked.connect(self.openMusicFolder)
         
-        # Add list
+        # Add list that contains the music
         self.musicList = QListWidget()
         
-        # Add combo box button
+        # Double click song to play
+        self.musicList.itemDoubleClicked.connect(self.doubleClickToPlay)
+        
+        # Add combo box button for selection of playback mode
         self.modeCom = QComboBox()
         self.modeCom.addItem(' Normal Playback ')
         self.modeCom.addItem(' Single Playback ')
@@ -231,4 +240,74 @@ class AudioPlayer(QWidget):
         self.is_switching = True
         self.setCurPlaying()
         self.playMusic()
-        self.is_switching = False  
+        self.is_switching = False
+        
+    def doubleClickToPlay(self):
+        """Double click the name of the song to play"""
+        # Reset slider position
+        self.slider.setValue(0)
+        self.is_switching = True
+        
+        # Set current playing song to selected row in music list
+        self.setCurPlaying()
+        self.playMusic()
+        self.is_switching = False
+
+    def execPlaybackMode(self):
+        """Play music according to playback mode and refresh progress bar"""
+        ##########################################################
+        # Initialize slider
+        ##########################################################
+        
+        # Set minimum, maximum and value of slider, if player is not paused or song is not switched
+        if (not self.is_pause) and (not self.is_switching):
+            self.slider.setMinimum(0)
+            self.slider.setMaximum(self.player.duration())
+            self.slider.setValue(self.slider.value() + 1000)
+        
+        # Set start and end time label of slider 
+        self.startTimeLabel.setText(time.strftime('%M:%S', time.localtime(self.player.position()/1000)))
+        self.endTimeLabel.setText(time.strftime('%M:%S', time.localtime(self.player.duration()/1000)))
+        
+        ##########################################################
+        # Set playback mode
+        ##########################################################
+        
+        # Normal playback
+        if (self.modeCom.currentIndex() == 0) and (not self.is_pause) and (not self.is_switching):
+            # Do nothing if music list is empty
+            if self.musicList.count() == 0:
+                return
+            
+            # Play next song after the current one is finished 
+            if self.player.position() == self.player.duration():
+                self.nextMusic()
+        
+        # Single playback
+        elif (self.modeCom.currentIndex() == 1) and (not self.is_pause) and (not self.is_switching):
+            # Do nothing if music list is empty
+            if self.musicList.count() == 0:
+                return
+            
+            # Play the same song again after the current one is finished 
+            if self.player.position() == self.player.duration():
+                self.is_switching = True
+                self.setCurPlaying()
+                self.slider.setValue(0)
+                self.playMusic()
+                self.is_switching = False
+        
+        # Random playback
+        elif (self.modeCom.currentIndex() == 2) and (not self.is_pause) and (not self.is_switching):
+            # Do nothing if music list is empty
+            if self.musicList.count() == 0:
+                return
+            
+            # Play a random song after the current one is finished 
+            if self.player.position() == self.player.duration():
+                self.is_switching = True
+                self.musicList.setCurrentRow(random.randint(0, self.musicList.count()-1))
+                self.setCurPlaying()
+                self.slider.setValue(0)
+                self.playMusic()
+                self.is_switching = False
