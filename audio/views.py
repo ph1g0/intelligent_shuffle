@@ -7,7 +7,7 @@ Created on Sun Jun 19 12:01:09 2022
 
 """This module provides views to the audio player"""
 
-import os, time, random
+import os, time, random, configparser
 
 from PyQt5.QtCore import Qt, QUrl, QTimer
 
@@ -51,6 +51,10 @@ class AudioPlayer(QWidget):
         self.timer.start(1000)
         self.timer.timeout.connect(self.execPlaybackMode)
         
+        # Name of the config file to save the music folder path
+        self.config_file = 'config.ini'
+        
+        # Setup UI
         self.setupUI()
 
     def setupUI(self):
@@ -63,9 +67,6 @@ class AudioPlayer(QWidget):
         self.slider = QSlider(Qt.Horizontal, self)
         self.startTimeLabel = QLabel('00:00')
         self.endTimeLabel = QLabel('00:00')
-        
-        # Drag the slider to control the music playback progress
-        self.slider.sliderMoved[int].connect(lambda: self.player.setPosition(self.slider.value()))
         
         # Add buttons for playback control
         self.playBtn = QPushButton('Play', self)
@@ -85,6 +86,9 @@ class AudioPlayer(QWidget):
         
         # Double click song to play
         self.musicList.itemDoubleClicked.connect(self.doubleClickToPlay)
+        
+        # Drag the slider to control the music playback progress
+        self.slider.sliderMoved[int].connect(lambda: self.player.setPosition(self.slider.value()))
         
         # Add combo box button for selection of playback mode
         self.modeCom = QComboBox()
@@ -125,9 +129,43 @@ class AudioPlayer(QWidget):
         # Create final layout
         self.setLayout(self.vboxMain)
         
-    def Tips(self, message):
+        # Load last music folder path
+        self.loadMusicPath()
+        
+    def showTips(self, message):
         """Show tips"""
-        QMessageBox.about(self, "Tips", message)
+        QMessageBox.about(self, "showTips", message)
+            
+    def updateMusicPath(self):
+        """Update current music path in config file"""
+        # Read and parse config file
+        config = configparser.ConfigParser()
+        config.read(self.config_file)
+        
+        # Test if config file exists
+        if not os.path.isfile(self.config_file):
+            # Create a new section in the config file
+            config.add_section('AudioPlayer')
+        
+        # Save path of the current music folder
+        config.set('AudioPlayer', 'PATH', self.cur_path)
+        
+        # Write an .ini-format representation of the configuration state
+        config.write(open(self.config_file, 'w'))
+        
+    def loadMusicPath(self):
+        """Load last music path from config file"""
+        # Read and parse config file
+        config = configparser.ConfigParser()
+        config.read(self.config_file)
+            
+        # Test if config file exists
+        if not os.path.isfile(self.config_file):
+            return
+        
+        # Get the last music path from config file
+        self.cur_path = config.get('AudioPlayer', 'PATH')
+        self.showMusicList()
         
     def openMusicFolder(self):
         """Open the music folder"""
@@ -143,6 +181,7 @@ class AudioPlayer(QWidget):
             self.startTimeLabel.setText('00:00')
             self.endTimeLabel.setText('00:00')
             self.slider.setSliderPosition(0)
+            self.updateMusicPath()
             self.is_pause = True
             self.playBtn.setText(' Play ')
             
@@ -159,7 +198,7 @@ class AudioPlayer(QWidget):
 
         # Check if there is music in the music list
         if self.musicList.count() == 0:
-            self.Tips('There are no playable music files in this directory')
+            self.showTips('There are no playable music files in this directory')
             return
         
         # Set current playing song to first track in songs list
@@ -176,7 +215,7 @@ class AudioPlayer(QWidget):
         """Start playing music"""
         # Check if there is music in the music list
         if self.musicList.count() == 0:
-            self.Tips(' There is no music file to play in the current path ')
+            self.showTips(' There is no music file to play in the current path ')
             return
         
         # Start playing music if it is not already playing        
@@ -202,7 +241,7 @@ class AudioPlayer(QWidget):
         
         # Check if there is music in the music list
         if self.musicList.count() == 0:
-            self.Tips(' There is no music file to play in the current path ')
+            self.showTips(' There is no music file to play in the current path ')
             return
         
         # Select previous song in music list, if it is not the first song
@@ -225,7 +264,7 @@ class AudioPlayer(QWidget):
         
         # Check if there is music in the music list
         if self.musicList.count() == 0:
-            self.Tips(' There is no music file to play in the current path ')
+            self.showTips(' There is no music file to play in the current path ')
             return
         
         # Select next song in music list, if it is not the last song
