@@ -20,6 +20,9 @@ def main():
     # Create the application
     app = QApplication(sys.argv)
 
+    # Set style of the application
+    app.setStyle('Fusion')
+
     # Create the main window
     win = AudioPlayer()
     win.show()
