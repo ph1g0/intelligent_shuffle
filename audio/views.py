@@ -25,8 +25,7 @@ from PyQt5.QtWidgets import (
     QPushButton, 
     QLabel, 
     QComboBox,
-    QFileDialog,
-    QStyleFactory
+    QFileDialog
     )
 
 
